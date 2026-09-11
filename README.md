@@ -1,4 +1,4 @@
-# 🏎️ RPi-Vision-Mecanum-Robot
+# RPi-Vision-Mecanum-Robot
 > **基于树莓派的全向移动视觉智能小车系统 | A Raspberry Pi-based Omnidirectional Vision Robot with Mecanum Kinematics & Multi-threaded Architecture**
 
 [![Platform](https://img.shields.io/badge/Platform-Raspberry%20Pi%20(Linux)-red.svg)](https://www.raspberrypi.org/)
@@ -46,3 +46,38 @@
        |      |
     W3 \\-----// W4
         Rear
+```
+
+---
+
+## 软件并发架构流图 (Software Concurrency Flow)
+
++-----------------------+
+                             |   Remote Client / UI  |
+                             +-----------+-----------+
+                                         | (HTTP / JSON-RPC)
+  =======================================v=======================================
+  [ Raspberry Pi (Linux Multithreading) ]
+  
+     +-------------------------+                 +-------------------------+
+     |   MJPG Stream Server    |                 |     JSON-RPC Server     |
+     | (HTTP Port 8080 Stream) |                 | (Socket Port 5000 API)  |
+     +------------^------------+                 +------------+------------+
+                  |                                           |
+            (Raw Frames)                                 (Cmd Packets)
+                  |                                           |
+     +------------+------------+                 +------------v------------+
+     |   Camera Capture Thread |                 |  Chassis Control Thread |
+     |  (30FPS Capture & Dist) |                 |  (Kinematics / Latency  |
+     +------------+------------+                 |         < 10ms)         |
+                  |                              +------------+------------+
+          (Thread-Safe Queue)                                 |
+                  |                                      (PWM / GPIO)
+     +------------v------------+                              |
+     | Vision Process Thread   |                              |
+     | (OpenCV Target Tracking)|--------[Error(dx, dy)]-------+
+     +-------------------------+
+  =======================================+=======================================
+                                         |
+                                         v
+                            [ Motor Driver & Pan-Tilt ]
